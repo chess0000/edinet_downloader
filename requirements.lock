@@ -10,17 +10,27 @@
 -e file:.
 annotated-types==0.6.0
     # via pydantic
+certifi==2024.2.2
+    # via requests
+charset-normalizer==3.3.2
+    # via requests
+idna==3.6
+    # via requests
 pydantic==2.6.4
+    # via edinet-downloader
     # via pydantic-settings
-    # via rye-template
 pydantic-core==2.16.3
     # via pydantic
 pydantic-settings==2.2.1
-    # via rye-template
+    # via edinet-downloader
 python-dotenv==1.0.1
     # via pydantic-settings
 pyyaml==6.0.1
-    # via rye-template
+    # via edinet-downloader
+requests==2.31.0
+    # via edinet-downloader
 typing-extensions==4.10.0
     # via pydantic
     # via pydantic-core
+urllib3==2.2.1
+    # via requests
