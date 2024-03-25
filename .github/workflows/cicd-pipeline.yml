@@ -20,11 +20,9 @@ jobs:
     uses: ./.github/workflows/lint.yml
     with:
       lint_dir: src/
-      requirements_file: requirements-dev.txt
 
   test:
     uses: ./.github/workflows/test.yml
     with:
       package_dir: src/
       test_dir: tests/
-      requirements_file: requirements-dev.txt
