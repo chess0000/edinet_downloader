@@ -3,9 +3,10 @@ from typing import Optional
 
 import pytest
 import requests
+import requests_mock
 
 from common.configs import configs
-from edinet_downlaod import fetch_edinet_docmment_data, generate_date_sequence
+from edinet_downlaod import fetch_edinet_document_json, generate_date_sequence
 
 
 @pytest.mark.parametrize(
@@ -78,4 +79,12 @@ def test_generate_date_sequence(
 def test_fetch_edinet_document_data(
     day: date, doc_type: str, expected: requests.Response
 ) -> None:
-    assert fetch_edinet_docmment_data(day, doc_type).status_code == expected
+    with requests_mock.Mocker() as m:
+        m.get(
+            "mock://testurl", status_code=expected
+        )  # モックURLと期待されるステータスコードを設定
+        # API URLをモックURLに一時的に置き換え
+        configs.EdinetApi.DOC_JSON_URL = "mock://testurl"
+
+        response = fetch_edinet_document_json(day, doc_type)
+        assert response.status_code == expected

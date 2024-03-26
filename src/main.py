@@ -2,7 +2,7 @@ from logging import getLogger
 
 from common.configs import configs
 from common.logger import init_logger
-from edinet_downlaod import fetch_edinet_docmment_data, generate_date_sequence
+from edinet_downlaod import fetch_edinet_document_json, generate_date_sequence
 
 init_logger(configs.LOGGER_CONFIG_PATH)
 
@@ -15,9 +15,14 @@ def main() -> None:
     from datetime import date
 
     date_list = generate_date_sequence(date(2024, 3, 25), date(2024, 3, 25))
-    doc_data = fetch_edinet_docmment_data(day=date_list[0])
+    doc_data = fetch_edinet_document_json(day=date_list[0])
 
-    logger.info(f"{doc_data=}")
+    if doc_data is None:
+        content = None
+    else:
+        content = doc_data.text
+
+    logger.info(f"{content=}")
     logger.info("End main")
 
 

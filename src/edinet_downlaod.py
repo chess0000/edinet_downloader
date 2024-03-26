@@ -43,23 +43,81 @@ def generate_date_sequence(
     return date_list
 
 
-def fetch_edinet_docmment_data(
-    day: date, doc_type: Optional[str] = configs.EdinetApi.DOC_TYPE_ONLY_META
-) -> requests.Response:
+def fetch_edinet_document_json(
+    day: date, doc_type: Optional[str] = None
+) -> Optional[requests.Response]:
     """EDINET APIから指定日のドキュメントデータを取得する
 
     Args:
         day (date): 取得する日付
-        doc_type (str, optional): 取得するドキュメントの種類.
-            1: メタ情報のみ, 2: メタ情報と文書データ. defaults: 1
+        doc_type (Optional[str], optional): 取得するドキュメントの種類.
+            1: メタ情報のみ, 2: メタ情報と文書データ. defaults to None (メタ情報のみ).
 
     Returns:
-        requests.Response: ドキュメントデータ
+        Optional[requests.Response]: 成功時はレスポンスオブジェクト、失敗時はNone
     """
-    logger.info("fetch_edinet_docmment_data")
-    logger.info("day: %s", day)
+    logger.info("Fetching EDINET document data for day: %s", day)
+
+    if doc_type is None:
+        doc_type = configs.EdinetApi.DOC_TYPE_ONLY_META
 
     url = configs.EdinetApi.DOC_JSON_URL
-    params = {"date": day, "type": doc_type}
+    params = {"date": day.strftime("%Y-%m-%d"), "type": doc_type}
 
-    return requests.get(url, params=params, timeout=configs.EdinetApi.TIME_OUT)
+    try:
+        res = requests.get(url, params=params, timeout=configs.EdinetApi.TIME_OUT)
+        res.raise_for_status()  # 200以外のステータスコードをエラーとして扱う
+        return res
+    except requests.RequestException as e:
+        logger.error(f"Failed to fetch EDINET document data: {e}")
+        return None
+
+
+def extract_first_securities_report_id(res: requests.Response) -> str:
+    """EDINETから取得したJSONデータから最初に条件に一致するdocIDを抽出する
+
+    Args:
+        res (requests.Response): レスポンス
+
+    Returns:
+        str: 条件に一致する最初のdocID。なければ空文字を返す。
+    """
+    json_data = res.json()
+    for result in json_data["results"]:
+        is_securities_report = (
+            result["ordinanceCode"] == configs.EdinetDocument.CORPORATE_CONTENT_CODE
+            and result["formCode"] == configs.EdinetDocument.SECURITIES_REPORT_CODE
+        )
+
+        if is_securities_report:
+            logger.info(
+                "filerName: %s, Description: %s, docID: %s",
+                result["filerName"],
+                result["docDescription"],
+                result["docID"],
+            )
+            return result["docID"]
+
+    return ""
+
+
+def get_edinet_document_id(day: date) -> str:
+    """指定された日付における最初の有価証券報告書のドキュメントIDを取得する。
+
+    Args:
+        day (date): ドキュメントを取得する日付。
+
+    Returns:
+        str: 条件に一致する最初のドキュメントID。なければ空文字を返す。
+    """
+    res = fetch_edinet_document_json(day)
+    if res is None:
+        logger.error("Response from EDINET API is None.")
+        return ""
+    if not res.ok:
+        logger.error(
+            f"Response from EDINET API is not OK. Status code: {res.status_code}"
+        )
+        return ""
+
+    return extract_first_securities_report_id(res)

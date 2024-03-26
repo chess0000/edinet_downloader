@@ -29,6 +29,11 @@ pyyaml==6.0.1
     # via edinet-downloader
 requests==2.31.0
     # via edinet-downloader
+    # via requests-mock
+requests-mock==1.11.0
+    # via edinet-downloader
+six==1.16.0
+    # via requests-mock
 typing-extensions==4.10.0
     # via pydantic
     # via pydantic-core

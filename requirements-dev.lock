@@ -57,9 +57,14 @@ pyyaml==6.0.1
     # via pre-commit
 requests==2.31.0
     # via edinet-downloader
+    # via requests-mock
+requests-mock==1.11.0
+    # via edinet-downloader
 ruff==0.3.4
 setuptools==69.2.0
     # via nodeenv
+six==1.16.0
+    # via requests-mock
 typing-extensions==4.10.0
     # via mypy
     # via pydantic

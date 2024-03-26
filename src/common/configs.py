@@ -28,5 +28,13 @@ class Configs(BaseSettings):
 
         TIME_OUT: int = 30
 
+    class EdinetDocument:
+        SECURITIES_REPORT_CODE = "030000"
+        AMENDED_SECURITIES_REPORT_CODE = "030001"
+        QUARTERLY_REPORT_CODE = "043000"
+        AMENDED_QUARTERLY_REPORT_CODE = "043001"
+
+        CORPORATE_CONTENT_CODE = "010"
+
 
 configs = Configs()
