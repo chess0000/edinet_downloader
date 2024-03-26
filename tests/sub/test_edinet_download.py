@@ -2,7 +2,6 @@ from datetime import date, timedelta
 from typing import Optional
 
 import pytest
-import requests
 import requests_mock
 
 from common.configs import configs
@@ -60,7 +59,7 @@ def test_generate_date_sequence(
 
 
 @pytest.mark.parametrize(
-    ["day", "doc_type", "expected"],
+    ["day", "doc_type", "expected_status"],
     [
         pytest.param(
             date(2024, 3, 25),
@@ -77,14 +76,14 @@ def test_generate_date_sequence(
     ],
 )
 def test_fetch_edinet_document_data(
-    day: date, doc_type: str, expected: requests.Response
+    day: date, doc_type: str, expected_status: int
 ) -> None:
     with requests_mock.Mocker() as m:
         m.get(
-            "mock://testurl", status_code=expected
+            "mock://testurl", status_code=expected_status
         )  # モックURLと期待されるステータスコードを設定
         # API URLをモックURLに一時的に置き換え
         configs.EdinetApi.DOC_JSON_URL = "mock://testurl"
 
         response = fetch_edinet_document_json(day, doc_type)
-        assert response.status_code == expected
+        assert response.status_code == expected_status
