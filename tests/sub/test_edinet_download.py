@@ -1,3 +1,4 @@
+import os
 from datetime import date, timedelta
 from typing import Optional
 
@@ -5,7 +6,11 @@ import pytest
 import requests_mock
 
 from common.configs import configs
-from edinet_downlaod import fetch_edinet_document_json, generate_date_sequence
+from edinet_downlaod import (
+    fetch_edinet_document_json,
+    fetch_securities_report,
+    generate_date_sequence,
+)
 
 
 @pytest.mark.parametrize(
@@ -87,3 +92,25 @@ def test_fetch_edinet_document_data(
 
         response = fetch_edinet_document_json(day, doc_type)
         assert response.status_code == expected_status
+
+
+@pytest.mark.parametrize(
+    "doc_id, expected_status",
+    [
+        ("some_doc_id", 200),  # 成功ケース
+        ("invalid_doc_id", 404),  # 失敗ケース
+    ],
+)
+def test_fetch_securities_report(doc_id: str, expected_status: int) -> None:
+    mock_url = os.path.join(configs.EdinetApi.DOC_URL, doc_id)  # モックするURLを構築
+
+    with requests_mock.Mocker() as m:
+        m.get(mock_url, status_code=expected_status)
+
+        response = fetch_securities_report(doc_id)
+
+        if expected_status == 200:
+            assert response is not None
+            assert response.status_code == expected_status
+        else:
+            assert response is None
