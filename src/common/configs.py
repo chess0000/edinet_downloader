@@ -12,9 +12,11 @@ class Configs(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
+    # .envファイルから読み込む
     ENV: str
-    VERSION: str = "0.0.1"
+    DOWNLOAD_ZIP_ROOT_PATH: str
 
+    # 直接記述
     SRC_DIR_PATH: str = os.path.join(Path(__file__).parent.parent.absolute())
     LOGGER_CONFIG_PATH: str = os.path.join(SRC_DIR_PATH, "logger_config.yaml")
 

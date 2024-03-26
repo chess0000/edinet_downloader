@@ -52,7 +52,7 @@ def fetch_edinet_document_json(
     Args:
         day (date): 取得する日付
         doc_type (Optional[str], optional): 取得するドキュメントの種類.
-            1: メタ情報のみ, 2: メタ情報と文書データ. defaults to None (メタ情報のみ).
+            1: メタ情報のみ, 2: メタ情報と文書データ. defaults to None (2).
 
     Returns:
         Optional[requests.Response]: 成功時はレスポンスオブジェクト、失敗時はNone
@@ -60,7 +60,7 @@ def fetch_edinet_document_json(
     logger.info("Fetching EDINET document data for day: %s", day)
 
     if doc_type is None:
-        doc_type = configs.EdinetApi.DOC_TYPE_ONLY_META
+        doc_type = configs.EdinetApi.DOC_TYPE_META_AND_DOC_DATA
 
     url = configs.EdinetApi.DOC_JSON_URL
     params = {"date": day.strftime("%Y-%m-%d"), "type": doc_type}
@@ -146,3 +146,45 @@ def fetch_securities_report(doc_id: str) -> Optional[requests.Response]:
     except requests.RequestException as e:
         logger.error(f"書類の取得に失敗しました。doc_id={doc_id}, エラー: {e}")
         return None
+
+
+def download_securities_report_zip(
+    doc_id: str, day: date, root_path: Optional[str] = None
+) -> None:
+    """有価証券報告書のzipファイルをダウンロードする
+
+    Args:
+        doc_id (str): 書類のID
+        day (date): 書類の提出日
+        root_path (Optional[str], optional): zipファイルを保存するディレクトリのパス
+    """
+    if root_path is None:
+        root_path = configs.DOWNLOAD_ZIP_ROOT_PATH
+
+    # 年/月/日のディレクトリパスを作成。(YYYY/MM/DD)。
+    year_dir = day.strftime("%Y")
+    month_dir = day.strftime("%m")
+    day_dir = day.strftime("%d")
+    target_path = os.path.join(root_path, year_dir, month_dir, day_dir)
+
+    if not os.path.exists(target_path):
+        logger.debug(f"Directory does not exist. Creating a new one. {target_path=}")
+        os.makedirs(target_path)
+
+    res = fetch_securities_report(doc_id)
+    if res is None:
+        logger.error(f"Failed to fetch securities report. {doc_id=}")
+        return
+
+    zip_file_path = os.path.join(target_path, f"{doc_id}.zip")
+    # 既にファイルが存在する場合はダウンロードをスキップ
+    if os.path.exists(zip_file_path):
+        logger.debug(f"Zip file already exists. Skipping download: {zip_file_path}")
+        return
+
+    with open(zip_file_path, "wb") as f:
+        for chunk in res.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
+
+    logger.info(f"Downloaded zip file: {zip_file_path}")
