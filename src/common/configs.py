@@ -29,8 +29,13 @@ class Configs(BaseSettings):
         DOC_TYPE_ONLY_META: str = "1"  # メタ情報のみ
         DOC_TYPE_META_AND_DOC_DATA: str = "2"  # メタ情報と文書データ
 
-        DOC_TYPE_XBRL: str = "1"  # 有価証券報告書の書式: XBRL
-        DOC_TYPE_PDF: str = "2"  # 有価証券報告書の書式: PDF
+        ## 有価証券報告書の書式 ##
+        # 1: 提出本文書及び監査報告書XBRLファイル
+        # 2: PDF
+        # 3: 代替書面・添付文書
+        # 4: 英文ファイル
+        DOC_TYPE_XBRL: str = "1"
+        DOC_TYPE_PDF: str = "2"
 
         TIME_OUT: int = 30
 

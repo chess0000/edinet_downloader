@@ -7,8 +7,8 @@ import requests_mock
 
 from common.configs import configs
 from edinet_downlaod import (
-    fetch_edinet_document_json,
-    fetch_securities_report,
+    fetch_edinet_document_binary,
+    fetch_edinet_submission_documents,
     generate_date_sequence,
 )
 
@@ -90,7 +90,7 @@ def test_fetch_edinet_document_data(
         # API URLをモックURLに一時的に置き換え
         configs.EdinetApi.DOC_JSON_URL = "mock://testurl"
 
-        response = fetch_edinet_document_json(day, doc_type)
+        response = fetch_edinet_submission_documents(day, doc_type)
         assert response.status_code == expected_status
 
 
@@ -101,13 +101,13 @@ def test_fetch_edinet_document_data(
         ("invalid_doc_id", 404),  # 失敗ケース
     ],
 )
-def test_fetch_securities_report(doc_id: str, expected_status: int) -> None:
+def test_fetch_edinet_document_binary(doc_id: str, expected_status: int) -> None:
     mock_url = os.path.join(configs.EdinetApi.DOC_URL, doc_id)  # モックするURLを構築
 
     with requests_mock.Mocker() as m:
         m.get(mock_url, status_code=expected_status)
 
-        response = fetch_securities_report(doc_id)
+        response = fetch_edinet_document_binary(doc_id)
 
         if expected_status == 200:
             assert response is not None
