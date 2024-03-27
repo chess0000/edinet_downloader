@@ -7,6 +7,7 @@ import requests
 
 from common.configs import configs
 from common.logger import init_logger
+from db_init import find_documents_by_date, insert_document
 
 init_logger(configs.LOGGER_CONFIG_PATH)
 
@@ -149,17 +150,28 @@ def fetch_securities_report(doc_id: str) -> Optional[requests.Response]:
 
 
 def download_securities_report_zip(
-    doc_id: str, day: date, root_path: Optional[str] = None
+    doc_id: str,
+    day: date,
+    db_path: str = configs.DB_PATH_CHECK_DOWNLOADED,
+    root_path: Optional[str] = None,
 ) -> None:
     """有価証券報告書のzipファイルをダウンロードする
 
     Args:
         doc_id (str): 書類のID
         day (date): 書類の提出日
+        db_path (str): ダウンロード済みの書類を記録するデータベースのパス
         root_path (Optional[str], optional): zipファイルを保存するディレクトリのパス
     """
     if root_path is None:
         root_path = configs.DOWNLOAD_ZIP_ROOT_PATH
+
+    documents = find_documents_by_date(db_path, day)
+
+    already_downloaded = any(doc[0] == doc_id and doc[1] for doc in documents)
+    if already_downloaded:
+        logger.debug(f"{doc_id=} is already downloaded. Skipping download.")
+        return
 
     # 年/月/日のディレクトリパスを作成。(YYYY/MM/DD)。
     year_dir = day.strftime("%Y")
@@ -171,15 +183,16 @@ def download_securities_report_zip(
         logger.debug(f"Directory does not exist. Creating a new one. {target_path=}")
         os.makedirs(target_path)
 
-    res = fetch_securities_report(doc_id)
-    if res is None:
-        logger.error(f"Failed to fetch securities report. {doc_id=}")
-        return
-
     zip_file_path = os.path.join(target_path, f"{doc_id}.zip")
     # 既にファイルが存在する場合はダウンロードをスキップ
     if os.path.exists(zip_file_path):
-        logger.debug(f"Zip file already exists. Skipping download: {zip_file_path}")
+        logger.debug(f"Zip file {zip_file_path} already exists. Skipping download.")
+        return
+
+    # 指定のdoc_idの有価証券報告書をダウンロード
+    res = fetch_securities_report(doc_id)
+    if res is None:
+        logger.error(f"Failed to fetch securities report. {doc_id=}")
         return
 
     with open(zip_file_path, "wb") as f:
@@ -187,4 +200,6 @@ def download_securities_report_zip(
             if chunk:
                 f.write(chunk)
 
+    # ダウンロード済みの書類をデータベースに記録
+    insert_document(db_path, doc_id, day, True)
     logger.info(f"Downloaded zip file: {zip_file_path}")

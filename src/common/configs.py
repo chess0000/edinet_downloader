@@ -15,6 +15,7 @@ class Configs(BaseSettings):
     # .envファイルから読み込む
     ENV: str
     DOWNLOAD_ZIP_ROOT_PATH: str
+    DB_PATH_CHECK_DOWNLOADED: str
 
     # 直接記述
     SRC_DIR_PATH: str = os.path.join(Path(__file__).parent.parent.absolute())
