@@ -138,7 +138,7 @@ def fetch_securities_report(doc_id: str) -> Optional[requests.Response]:
     """
     try:
         url = os.path.join(configs.EdinetApi.DOC_URL, doc_id)
-        params = {"type": configs.EdinetApi.DOC_TYPE_ONLY_META}
+        params = {"type": configs.EdinetApi.DOC_TYPE_XBRL}
         res = requests.get(
             url, params=params, stream=True, timeout=configs.EdinetApi.TIME_OUT
         )

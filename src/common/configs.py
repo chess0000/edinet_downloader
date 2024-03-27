@@ -29,6 +29,9 @@ class Configs(BaseSettings):
         DOC_TYPE_ONLY_META: str = "1"  # メタ情報のみ
         DOC_TYPE_META_AND_DOC_DATA: str = "2"  # メタ情報と文書データ
 
+        DOC_TYPE_XBRL: str = "1"  # 有価証券報告書の書式: XBRL
+        DOC_TYPE_PDF: str = "2"  # 有価証券報告書の書式: PDF
+
         TIME_OUT: int = 30
 
     class EdinetDocument:
