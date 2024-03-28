@@ -95,10 +95,8 @@ def extract_securities_info(
             and result.get("formCode") == configs.EdinetDocument.SECURITIES_REPORT_CODE
         )
 
-        if not is_securities_report:
-            continue
-
-    yield (result.get("filerName"), result.get("docID"), result.get("secCode"))
+        if is_securities_report:
+            yield (result.get("filerName"), result.get("docID"), result.get("secCode"))
 
 
 def fetch_edinet_document_binary(doc_id: str) -> Optional[requests.Response]:
