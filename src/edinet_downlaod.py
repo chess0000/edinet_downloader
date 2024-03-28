@@ -19,7 +19,10 @@ def generate_date_sequence(
     start_date: date = date.today(),
     end_date: Optional[date] = None,
 ) -> list[date]:
-    """2つの日付の間の日付のリストを生成する
+    """2つの日付間の日付のリストを生成する。end_dateがNoneの場合はstart_dateと同じと見なされる。
+    日付はstart_dateからend_dateまでの日付が含まれる。
+    例: start_date=date(2021, 1, 1), end_date=date(2021, 1, 3)
+    -> [date(2021, 1, 1), date(2021, 1, 2), date(2021, 1, 3)]
 
     Args:
         start_date (datetime.date): 開始日。デフォルトは今日
@@ -47,25 +50,22 @@ def generate_date_sequence(
 
 
 def fetch_edinet_submission_documents(
-    day: date, doc_type: Optional[str] = None
+    submission_date: date, doc_type: str = configs.EdinetApi.DOC_TYPE_META_AND_DOC_DATA
 ) -> Optional[requests.Response]:
     """EDINET APIから指定日に提出されたドキュメント一覧をjson形式で取得する
 
     Args:
-        day (date): 取得する日付
+        submission_date (date): 提出日
         doc_type (Optional[str], optional): 取得するドキュメントの種類.
             1: メタ情報のみ, 2: メタ情報と文書データ. defaults to None (2).
 
     Returns:
         Optional[requests.Response]: 成功時はレスポンスオブジェクト、失敗時はNone
     """
-    logger.info("Fetching EDINET document data for day: %s", day)
-
-    if doc_type is None:
-        doc_type = configs.EdinetApi.DOC_TYPE_META_AND_DOC_DATA
+    logger.info(f"Fetching EDINET document data for {doc_type=} on {submission_date}")
 
     url = configs.EdinetApi.DOC_JSON_URL
-    params = {"date": day.strftime("%Y-%m-%d"), "type": doc_type}
+    params = {"date": submission_date.strftime("%Y-%m-%d"), "type": doc_type}
 
     try:
         res = requests.get(url, params=params, timeout=configs.EdinetApi.TIME_OUT)
@@ -104,7 +104,7 @@ def extract_securities_info(
 
 
 def fetch_edinet_document_binary(doc_id: str) -> Optional[requests.Response]:
-    """docIDから書類を取得する
+    """docIDから書類をバイナリ形式で取得する。取得できない場合はNoneを返す。
 
     Args:
         doc_id (str): 書類のID
@@ -127,8 +127,8 @@ def fetch_edinet_document_binary(doc_id: str) -> Optional[requests.Response]:
         return None
 
 
-def download_securities_report_zip(
-    day: date,
+def save_report_zip_with_db_record(
+    submission_day: date,
     filer_name: str,
     doc_id: str,
     sec_code: str,
@@ -136,7 +136,20 @@ def download_securities_report_zip(
     db_path: str = configs.BASE_PATH_CHECK_DOWNLOADED_DB,
     root_path: Optional[str] = None,
 ) -> None:
-    """有価証券報告書のzipファイルをダウンロードする"""
+    """有価証券報告書のバイナリファイルをzip形式で保存する
+
+    Args:
+        submission_day (date): 提出日
+        filer_name (str): 提出者名（会社名）
+        doc_id (str): 書類ID
+        sec_code (str): 証券コード
+        binary_res (requests.Response): バイナリデータ
+        db_path (str, optional):
+            ダウンロード済み書類を記録するデータベースのパス.
+            defaults to configs.BASE_PATH_CHECK_DOWNLOADED_DB.
+        root_path (Optional[str], optional):
+            ダウンロード先のルートディレクトリパス. defaults to None.
+    """
     if root_path is None:
         root_path = configs.BASE_PATH_DOWNLOAD_ZIP
 
@@ -151,9 +164,9 @@ def download_securities_report_zip(
 
     # 年/月/日のディレクトリパスを作成
     year_dir, month_dir, day_dir = (
-        day.strftime("%Y"),
-        day.strftime("%m"),
-        day.strftime("%d"),
+        submission_day.strftime("%Y"),
+        submission_day.strftime("%m"),
+        submission_day.strftime("%d"),
     )
     target_path = os.path.join(root_path, year_dir, month_dir, day_dir)
     os.makedirs(target_path, exist_ok=True)
@@ -171,7 +184,7 @@ def download_securities_report_zip(
         logger.info(f"Downloaded zip file: {zip_file_path}")
 
     # ダウンロード済みの書類をデータベースに記録
-    insert_document(db_path, doc_id, day, company_id, True)
+    insert_document(db_path, doc_id, submission_day, company_id, True)
 
 
 def check_document_downloaded(db_path: str, doc_id: str) -> bool:
