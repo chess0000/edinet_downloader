@@ -14,12 +14,20 @@ class Configs(BaseSettings):
 
     # .envファイルから読み込む
     ENV: str
-    DOWNLOAD_ZIP_ROOT_PATH: str
-    DB_PATH_CHECK_DOWNLOADED: str
+    BASE_PATH_DOWNLOAD_ZIP: str
+    BASE_PATH_CHECK_DOWNLOADED_DB: str
 
     # 直接記述
-    SRC_DIR_PATH: str = os.path.join(Path(__file__).parent.parent.absolute())
+    PROJECT_ROOT_PATH: str = os.path.join(
+        Path(__file__).parent.parent.parent.absolute()
+    )
+
+    SRC_DIR_PATH: str = os.path.join(PROJECT_ROOT_PATH, "src")
     LOGGER_CONFIG_PATH: str = os.path.join(SRC_DIR_PATH, "logger_config.yaml")
+
+    LOG_DIR_PATH: str = os.path.join(PROJECT_ROOT_PATH, "logs")
+
+    FILE_NAME_EDINET_SUBMISSIONS_DB: str = "edinet_submissions.db"
 
     class EdinetApi:
         BASE_URL: str = "https://disclosure.edinet-fsa.go.jp/api/v1"

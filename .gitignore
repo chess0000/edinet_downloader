@@ -1,5 +1,8 @@
 # original
 .ruff_cache
+db/
+download/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

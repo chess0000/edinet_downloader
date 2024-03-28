@@ -5,7 +5,7 @@ install:
 	rye sync
 	rye run pre-commit install
 	cp .env.example .env
-	mkdir logs
+	python3 src/setup_enviroment.py
 
 # main.pyを実行する
 .PHONY: run_main

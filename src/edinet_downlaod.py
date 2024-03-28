@@ -1,4 +1,5 @@
 import os
+import sqlite3
 from datetime import date, timedelta
 from logging import getLogger
 from typing import Generator, Optional
@@ -7,7 +8,7 @@ import requests
 
 from common.configs import configs
 from common.logger import init_logger
-from db_init import find_documents_by_date, insert_document
+from db_utils import insert_company, insert_document
 
 init_logger(configs.LOGGER_CONFIG_PATH)
 
@@ -95,7 +96,10 @@ def extract_securities_info(
             and result.get("formCode") == configs.EdinetDocument.SECURITIES_REPORT_CODE
         )
 
-        if is_securities_report:
+        # secCodeが存在するかどうかで上場企業かどうかを判定
+        is_listed_company = result.get("secCode") is not None
+
+        if is_securities_report and is_listed_company:
             yield (result.get("filerName"), result.get("docID"), result.get("secCode"))
 
 
@@ -129,31 +133,23 @@ def download_securities_report_zip(
     doc_id: str,
     sec_code: str,
     binary_res: requests.Response,
-    db_path: str = configs.DB_PATH_CHECK_DOWNLOADED,
+    db_path: str = configs.BASE_PATH_CHECK_DOWNLOADED_DB,
     root_path: Optional[str] = None,
 ) -> None:
-    """有価証券報告書のzipファイルをダウンロードする
-
-    Args:
-        day (date): 書類の提出日
-        filer_name (str): 会社名
-        doc_id (str): 書類のID
-        sec_code (str): 証券コード
-        binary_res (requests.Response): 書類のバイナリデータ
-        db_path (str): ダウンロード済みの書類を記録するデータベースのパス
-        root_path (Optional[str], optional): zipファイルを保存するディレクトリのパス
-    """
+    """有価証券報告書のzipファイルをダウンロードする"""
     if root_path is None:
-        root_path = configs.DOWNLOAD_ZIP_ROOT_PATH
+        root_path = configs.BASE_PATH_DOWNLOAD_ZIP
 
-    documents = find_documents_by_date(db_path, day)
+    # 会社情報をデータベースに登録し、company_idを取得
+    company_id = insert_company(db_path, filer_name, sec_code)
 
-    already_downloaded = any(doc[0] == doc_id and doc[1] for doc in documents)
+    # データベースに記録されているか確認
+    already_downloaded = check_document_downloaded(db_path, doc_id)
     if already_downloaded:
         logger.debug(f"{doc_id=} is already downloaded. Skipping download.")
         return
 
-    # 年/月/日のディレクトリパスを作成。(YYYY/MM/DD)。
+    # 年/月/日のディレクトリパスを作成
     year_dir, month_dir, day_dir = (
         day.strftime("%Y"),
         day.strftime("%m"),
@@ -167,11 +163,22 @@ def download_securities_report_zip(
         logger.debug(f"Zip file {zip_file_path} already exists. Skipping download.")
         return
 
+    # ダウンロード処理
     with open(zip_file_path, "wb") as f:
         for chunk in binary_res.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
+        logger.info(f"Downloaded zip file: {zip_file_path}")
 
     # ダウンロード済みの書類をデータベースに記録
-    insert_document(db_path, doc_id, day, filer_name, sec_code, True)
-    logger.info(f"Downloaded zip file: {zip_file_path}")
+    insert_document(db_path, doc_id, day, company_id, True)
+
+
+def check_document_downloaded(db_path: str, doc_id: str) -> bool:
+    """文書がダウンロード済みかどうかをデータベースから確認する"""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT downloaded FROM documents WHERE doc_id = ?", (doc_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result and result[0]
